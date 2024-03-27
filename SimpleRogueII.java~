@@ -1,0 +1,208 @@
+// Simple roguelike that I can quickly use as proof of concept
+
+
+import javafx.application.Application;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+
+import javafx.scene.control.Button;
+
+import javafx.scene.control.Label;
+import javafx.geometry.Pos;
+
+public class SimpleRogueII extends Application {
+  
+  // Fields concerning map size and content
+  public Label[][] map;
+  public int sideLengthX = 18;
+  public int sideLengthY = 9;
+  
+  // Fields concenrning contextual ui
+  public Label hoverContext;
+  Scene hoverContextScene;
+  Stage hoverContextStage;
+  
+  // Fields pairing ASCII sprites to names via indeces
+  public String[] list = {"@", ".", "#", "e", "E", "="};
+  public String[] nameList = {"player", "floor", "wall", "enemy", "boss enemy", "stairs"};
+  
+  // Fields concerning the master scene 
+  public GridPane pane;
+  public Scene scene;
+  
+  // Fields concerning temporary button UI, replace this with a listener
+  public HBox buttonBox;
+  
+  // LOGIC Fields
+  
+  // Fields conerning player position 
+  public int playerX = sideLengthX/2;
+  public int playerY = sideLengthY/2;
+  
+  // Fields concerning OpFor power scaling per floor
+  public int currentFloor = 1;
+  public int currentLevel = 1;
+  
+  // get a reusable sprite String by name
+  public String sprite(String name){
+    switch (name){
+      case "player": return list[0];
+      case "floor": return list[1];
+      case "wall": return list[2];
+      case "enemy": return list[3];
+      case "boss": 
+      case "boss enemy": return list[4];
+    }
+    return "?"; // sprite not found
+  }
+  
+  public int randIntBetween(int min, int max){
+    /* Math:
+     * Rand() = [0,1)
+     * Rand() * max = [0,max)
+     * Rand() * (max + 1) = [0, max + 1) = [0, max] <- (int)(#)
+     * (Rand() * (max + 1)) + min = [min, max + min]
+     * (Rand() * (max - min + 1)) + min =  [min, max - min + min] = [min, max]
+     */
+    return (int)((Math.random() * (max - min + 1)) + min);
+  }
+  
+  // get a reusable sprite String by char equivalent (probably most efficient)
+  public String sprite(char name){
+    switch (name){
+      case '@': return list[0];
+      case '.': return list[1];
+      case '#': return list[2];
+      case 'e': return list[3];
+      case 'E': return list[4];
+    }
+    return "?"; // sprite not found
+  }
+  
+  // get a sprite's name from the String sprite
+  public String spriteName(String sprite){
+    int spriteIndex = -1;
+    for(int i = 0; i < list.length; i++)
+      if(sprite == list[i])
+      spriteIndex = i;
+    return (spriteIndex == -1) ? "?" : nameList[spriteIndex];
+  }
+  
+  // dress each label in the desired style
+  public static void stylizeLabel(Label label){ 
+    label.setAlignment(Pos.CENTER);
+    label.setPrefWidth(20);
+    label.setPrefHeight(20);
+  }
+  
+  // dress the gridpane with the desired style
+  public static void stylizeGridPane(GridPane pane){
+    
+  }
+  
+  public void initializeMap(){
+    map = new Label[sideLengthX][sideLengthY];
+    for(int i = 0; i < sideLengthX * sideLengthY; i++){
+      int x = i / sideLengthY;
+      int y = i % sideLengthY; // The remainder of index not contributing to a new Y row contributes to a new X column
+      Label label = new Label();
+      
+      SimpleRogue.stylizeLabel(label);
+      
+      if( (x == 0 || x == sideLengthX - 1) || (y == 0 || y == sideLengthY - 1) )
+        label.setText(sprite('#')); 
+      else
+        label.setText(sprite('.'));
+      
+      map[x][y] = label;
+      pane.add(label, x, y);
+    }
+  }
+  
+  public void spawnPlayer(){
+    setSpriteOnMap(sprite('@'), playerX, playerY);     // set label player is now on to player sprite
+  }
+  
+  public void spawnStairs(){
+    /* 
+     * To keep things simple, the stairs cannot be on the same axis as the player.
+     * That way, I can spawn this first and skip iterating on the x or y that the player is on to find 
+     * where the stairs go.
+     */
+  }
+  
+  //the section in the grid for movement buttons for now, but will be menus later
+  public void initializeButtonBox(){
+    Button buttonUp = new Button("/\\");
+    buttonUp.setOnAction( e -> movePlayerUp());
+    Button buttonLeft = new Button("<");
+    buttonLeft.setOnAction( e -> movePlayerLeft());
+    Button buttonRight = new Button(">");
+    buttonRight.setOnAction( e -> movePlayerRight());
+    Button buttonDown = new Button("\\/");
+    buttonDown.setOnAction( e -> movePlayerDown());
+    
+    buttonBox.getChildren().add(buttonUp);
+    buttonBox.getChildren().add(buttonLeft);
+    buttonBox.getChildren().add(buttonRight);
+    buttonBox.getChildren().add(buttonDown);
+    pane.add(buttonBox, 0, sideLengthY, sideLengthX, 1);
+  }
+  
+  public String getSpriteOnMap(int x, int y){
+    return map[x][y].getText();
+  }
+  public void setSpriteOnMap(String sprite, int x, int y){
+    map[x][y].setText(sprite);
+  }
+  
+  // move the player. Because the floors are assumed to be the same because we are testing with a 2D, we can assume
+  // all the floors are the same and when a mobile sprite leaves a tile, that tile is a floor.
+  public void movePlayer(int x, int y){
+    // the player is moving from point A to point B, spriteB is the sprite at point B
+    String spriteB = getSpriteOnMap(playerX + x, playerY - y);
+    if(spriteB == sprite('.')){ //if the move is valid == if the tile is floor
+      setSpriteOnMap(sprite('.'), playerX, playerY);             // set label player was on to a floor sprite
+      setSpriteOnMap(sprite('@'), playerX + x, playerY - y);     // set label player is now on to player sprite
+      playerX += x;                                              // set player location to new location
+      playerY -= y;                                              
+    } else if (spriteB == sprite('=')){
+      
+    }
+  }
+  public void movePlayerUp(){
+    movePlayer(0, 1);
+  }
+  public void movePlayerLeft(){
+    movePlayer(-1, 0);
+  }
+  public void movePlayerRight(){
+    movePlayer(1, 0);
+  }
+  public void movePlayerDown(){
+    movePlayer(0, -1);
+  }
+  
+  //Application order 
+  public void init(){
+    pane = new GridPane();
+    buttonBox = new HBox();
+    scene = new Scene(pane);
+  }
+  
+  public void start(Stage primaryStage){
+    initializeMap();
+    initializeButtonBox();
+    
+    primaryStage.setScene(scene);
+    primaryStage.show();
+  }
+  
+  
+  public static void main(String... args){
+    Application.launch(args);
+  }
+}

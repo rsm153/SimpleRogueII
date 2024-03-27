@@ -1,0 +1,232 @@
+// Simple roguelike that I can quickly use as proof of concept
+
+
+import javafx.application.Application;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+
+import javafx.scene.control.Button;
+
+import javafx.scene.control.Label;
+import javafx.geometry.Pos;
+
+//for a Media Player test with a beepbox soundtrack. Keeps causing exception in init (media =...), will resolve later
+//import javafx.scene.media.Media;
+//import javafx.scene.media.MediaPlayer;
+//import javafx.scene.media.MediaView;
+
+public class SimpleRogue extends Application {
+  
+  // Fields concerning map size and content
+  public Label[][] map;
+  public int sideLengthX = 18;
+  public int sideLengthY = 9;
+  
+  // Fields concenrning contextual ui
+  public Label hoverContext;
+  Scene hoverContextScene;
+  Stage hoverContextStage;
+  
+  // Fields pairing ASCII sprites to names via indeces
+  public String[] list = {"@", ".", "#", "e", "E", "="};
+  public String[] nameList = {"player", "floor", "wall", "enemy", "boss enemy", "stairs"};
+  
+  // Fields concerning the master scene 
+  public GridPane pane;
+  public Scene scene;
+  
+  // Fields concerning temporary button UI, replace this with a listener
+  public HBox buttonBox;
+  
+  // Fields conerning 
+  public int playerX = sideLengthX/2;
+  public int playerY = sideLengthY/2;
+  
+  // Fields concerning sound media. Keeps causing exception in init (media =...), will resolve later
+//  public Media media;
+//  public MediaPlayer mediaPlayer;
+//  public MediaView mediaView;
+  
+  // get a reusable sprite String by name
+  public String sprite(String name){
+    switch (name){
+      case "player": return list[0];
+      case "floor": return list[1];
+      case "wall": return list[2];
+      case "enemy": return list[3];
+      case "boss": 
+      case "boss enemy": return list[4];
+    }
+    return "?"; // sprite not found
+  }
+  
+  
+  
+  // get a reusable sprite String by char equivalent (probably most efficient)
+  public String sprite(char name){
+    switch (name){
+      case '@': return list[0];
+      case '.': return list[1];
+      case '#': return list[2];
+      case 'e': return list[3];
+      case 'E': return list[4];
+    }
+    return "?"; // sprite not found
+  }
+  
+  // get a sprite's name from the String sprite
+  public String spriteName(String sprite){
+    int spriteIndex = -1;
+    for(int i = 0; i < list.length; i++)
+      if(sprite == list[i])
+      spriteIndex = i;
+    return (spriteIndex == -1) ? "?" : nameList[spriteIndex];
+  }
+  
+  // dress each label in the desired style
+  public static void stylizeLabel(Label label){
+    
+    label.setAlignment(Pos.CENTER);
+    label.setPrefWidth(20);
+    label.setPrefHeight(20);
+    
+//    label.setOnMouseEntered(e -> {
+//      hoverContextStage.setX(e.getScreenX()); 
+//      hoverContextStage.setY(e.getScreenY());
+//      hoverContext.setText(label.getText());
+//      hoverContextStage.show();
+//    });
+//    label.setOnMouseEntered(e -> {
+//      hoverContextStage.hide();
+//    });
+  }
+  
+  // dress the gridpane with the desired style
+  public static void stylizeGridPane(GridPane pane){
+    
+  }
+  
+  public void initializeMap(){
+    map = new Label[sideLengthX][sideLengthY];
+    for(int i = 0; i < sideLengthX * sideLengthY; i++){
+      int x = i / sideLengthY;
+      int y = i % sideLengthY; //The remainder of index not contributing to a new Y row contributes to a new X column
+      Label label = new Label();
+      
+      SimpleRogue.stylizeLabel(label);
+      
+      if( (x == 0 || x == sideLengthX - 1) || (y == 0 || y == sideLengthY - 1) )
+        label.setText(sprite('#')); 
+      else
+        label.setText(sprite('.')); 
+      if( x == sideLengthX/2 && y == sideLengthY/2)
+        label.setText(sprite('@')); 
+      
+      map[x][y] = label;
+      pane.add(label, x, y);
+    }
+  }
+  
+  //the section in the grid for movement buttons for now, but will be menus later
+  public void initializeButtonBox(){
+    Button buttonUp = new Button("/\\");
+    buttonUp.setOnAction( e -> movePlayerUp());
+    Button buttonLeft = new Button("<");
+    buttonLeft.setOnAction( e -> movePlayerLeft());
+    Button buttonRight = new Button(">");
+    buttonRight.setOnAction( e -> movePlayerRight());
+    Button buttonDown = new Button("\\/");
+    buttonDown.setOnAction( e -> movePlayerDown());
+    
+    buttonBox.getChildren().add(buttonUp);
+    buttonBox.getChildren().add(buttonLeft);
+    buttonBox.getChildren().add(buttonRight);
+    buttonBox.getChildren().add(buttonDown);
+    pane.add(buttonBox, 0, sideLengthY, sideLengthX, 1);
+  }
+  
+  public String getSpriteOnMap(int x, int y){
+    return map[x][y].getText();
+  }
+  public void setSpriteOnMap(String sprite, int x, int y){
+    map[x][y].setText(sprite);
+  }
+  
+  // move the player. Because the floors are assumed to be the same because we are testing with a 2D, we can assume
+  // all the floors are the same and when a mobile sprite leaves a tile, that tile is a floor.
+  public void movePlayerUp(){
+    if(getSpriteOnMap(playerX, playerY - 1) == sprite('.')){ //if the move is valid == if the tile is floor
+      setSpriteOnMap(sprite('.'), playerX, playerY);     // set label player was on to a floor sprite
+      setSpriteOnMap(sprite('@'), playerX, playerY - 1); // set label player is now on to player sprite
+      playerY -= 1;                                      // set player location to new location
+    }
+  }
+  public void movePlayerLeft(){
+    if(getSpriteOnMap(playerX - 1, playerY) == sprite('.')){ //if the move is valid == if the tile is floor
+      setSpriteOnMap(sprite('.'), playerX, playerY);     // set label player was on to a floor sprite
+      setSpriteOnMap(sprite('@'), playerX - 1, playerY); // set label player is now on to player sprite
+      playerX -= 1;                                      // set player location to new location
+    }
+  }
+  public void movePlayerRight(){
+    if(getSpriteOnMap(playerX + 1, playerY) == sprite('.')){ //if the move is valid == if the tile is floor
+      setSpriteOnMap(sprite('.'), playerX, playerY);     // set label player was on to a floor sprite
+      setSpriteOnMap(sprite('@'), playerX + 1, playerY); // set label player is now on to player sprite
+      playerX += 1;                                      // set player location to new location
+    }
+  }
+  public void movePlayerDown(){
+    if(getSpriteOnMap(playerX, playerY + 1) == sprite('.')){ //if the move is valid == if the tile is floor
+      setSpriteOnMap(sprite('.'), playerX, playerY);     // set label player was on to a floor sprite
+      setSpriteOnMap(sprite('@'), playerX, playerY + 1); // set label player is now on to player sprite
+      playerY += 1;                                      // set player location to new location
+    }
+  }
+  
+  //Application order 
+  public void init(){
+    pane = new GridPane();
+    buttonBox = new HBox();
+    scene = new Scene(pane);
+    
+//    media = new Media("C:\\Users\\rober\\Downloads\\DoctorJava\\ProjectSimpleRoguelike\\LasterLaboratoryPixeled.mp3");
+//    mediaPlayer = new MediaPlayer(media);
+//    mediaPlayer.setAutoPlay(true);
+  }
+  
+  public void start(Stage primaryStage){
+    initializeMap();
+    initializeButtonBox();
+    // wonky as fuck. will now use a context menu in the future.
+//    hoverContext = new Label();
+//    hoverContextScene = new Scene(hoverContext);
+//    hoverContextStage = new Stage();
+//    hoverContextStage.setScene(hoverContextScene);
+//    hoverContextStage.initStyle(javafx.stage.StageStyle.UNDECORATED);
+//    
+//    for(int i = 0; i < sideLengthX * sideLengthY; i++){
+//      int x = i / sideLengthY;
+//      int y = i % sideLengthY; //The remainder of index not contributing to a new Y row contributes to a new X column
+//      map[x][y].setOnMouseEntered(e -> {
+//        hoverContextStage.setX(e.getScreenX() + 100); 
+//        hoverContextStage.setY(e.getScreenY() - 100);
+//        hoverContext.setText(spriteName(map[x][y].getText()));
+//        hoverContextStage.show();
+//      });
+//      map[x][y].setOnMouseExited(e -> {
+//        hoverContextStage.hide();
+//      });
+//    }
+    
+    primaryStage.setScene(scene);
+    primaryStage.show();
+  }
+  
+  
+  public static void main(String... args){
+    Application.launch(args);
+  }
+}
